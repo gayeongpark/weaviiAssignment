@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import React, { useState, useEffect } from "react";
 
 interface Artist {
@@ -8,27 +9,17 @@ interface Artist {
 }
 
 interface ArtistsProps {
-  searchQuery: string;
+  search: string;
 }
 
-export default function Artists({ searchQuery }: ArtistsProps) {
+export default function Artists({ search }: ArtistsProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [artists, setArtists] = useState<Artist[]>([]);
-
+  // console.log(searchQuery);
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // console.log(apiUrl)
-        const query = `
-          {
-            queryArtists(byName: "${searchQuery}") {
-              name
-              id
-              image
-            }
-          }
-        `;
         const response = await fetch(
           "https://joyce-spotify-graphql.herokuapp.com/graphql?query=%7B%0A%20%20queryArtists(byName%3A%22Red%20Hot%20Chili%20Peppers%22)%20%7B%0A%20%20%20%20name%0A%20%20%20%20id%0A%20%20%20%20image%0A%20%20%7D%0A%7D%0A",
           {
@@ -39,7 +30,7 @@ export default function Artists({ searchQuery }: ArtistsProps) {
             body: JSON.stringify({
               query: `
               {
-                queryArtists(byName: "Red Hot Chili Peppers") {
+                queryArtists {
                   name
                   id
                   image
@@ -50,7 +41,7 @@ export default function Artists({ searchQuery }: ArtistsProps) {
           }
         );
         console.log(response);
-        if (!response) {
+        if (!response.ok) {
           throw new Error("Network response was not ok");
         }
 
@@ -69,34 +60,43 @@ export default function Artists({ searchQuery }: ArtistsProps) {
     };
 
     fetchData();
-  }, [searchQuery]);
+  }, [search]);
 
   if (loading) return <p>Loading...</p>;
   if (error) return <p>Error: {error}</p>;
 
   return (
-    <div className="m-4">
-      {artists?.map((artist) => (
-        <div
-          key={artist.id}
-          className="flex justify-between flex-row items-center"
-        >
-          {artist.image !== "" ? (
-            <img
-              src={artist.image}
-              alt={artist.name}
-              className="w-20 h-20 object-cover rounded-full"
-            />
-          ) : (
-            <img
-              src="../album.png"
-              alt={artist.name}
-              className="w-20 h-20 object-cover rounded-full"
-            />
-          )}
-          <h2 className="mt-2 text-lg font-medium">{artist.name}</h2>
-        </div>
-      ))}
+    <div className="grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 xl:gap-x-8">
+      {artists
+        .filter((artist) => {
+          return search.toLowerCase() === ""
+            ? artist
+            : artist.name.toLowerCase().includes(search);
+        })
+        .map((artist) => (
+          <Link
+            key={artist.id}
+            href={`../details/${artist.id}`}
+            className="group"
+          >
+            <div className="aspect-h-1 aspect-w-1 w-full overflow-hidden rounded-lg bg-gray-200 xl:aspect-h-8 xl:aspect-w-7">
+              {artist.image !== "" ? (
+                <img
+                  src={artist.image}
+                  alt={artist.name}
+                  className="h-full w-full object-cover object-center group-hover:opacity-75"
+                />
+              ) : (
+                <img
+                  src="../music-album.png"
+                  alt={artist.name}
+                  className="h-full w-full object-cover object-center group-hover:opacity-75"
+                />
+              )}
+            </div>
+            <h3 className="mt-4 text-xl text-white">{artist.name}</h3>
+          </Link>
+        ))}
     </div>
   );
 }
